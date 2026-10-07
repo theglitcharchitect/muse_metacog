@@ -4,7 +4,7 @@
 
 Built for the Muse agent and usable in any agent loop. `metacog.py` turns cheap and expensive uncertainty signals (stated confidence, retrieval support, P(True), semantic entropy) into one calibrated probability, gates System 1 → System 2 escalation on the cost of being wrong, and logs every outcome so the agent keeps an honest, per-domain map of what it is good at.
 
-![Where the monitor sits in an agent loop](docs/img/architecture.png)
+![Where the monitor sits in an agent loop](architecture.png)
 
 ---
 
@@ -13,17 +13,17 @@ Built for the Muse agent and usable in any agent loop. `metacog.py` turns cheap 
 | Path | What it is |
 |---|---|
 | [`metacog.py`](metacog.py) | Metacognitive monitor v2: scoring, calibration, signal fusion, monitor cost policy, escalation gate, outcome log, per-domain report |
-| [`docs/architecture.md`](docs/architecture.md) | The wider agent loop the monitor plugs into: 10-step cycle, self-model, evaluation harness, build order, risks |
-| [`docs/literature.md`](docs/literature.md) | Background: 15-paper matrix on LLM metacognition, calibration, and agent architectures, every entry checked against its source |
-| [`docs/metacog-guide.md`](docs/metacog-guide.md) | How to wire `metacog.py` into an agent loop, with the API for every class |
-| [`docs/make_figures.py`](docs/make_figures.py) | Regenerates every figure below from the module's own self-test |
+| [`architecture.md`](architecture.md) | The wider agent loop the monitor plugs into: 10-step cycle, self-model, evaluation harness, build order, risks |
+| [`literature.md`](literature.md) | Background: 15-paper matrix on LLM metacognition, calibration, and agent architectures, every entry checked against its source |
+| [`metacog-guide.md`](metacog-guide.md) | How to wire `metacog.py` into an agent loop, with the API for every class |
+| [`make_figures.py`](make_figures.py) | Regenerates every figure below from the module's own self-test |
 
 ## Quick start
 
 ```bash
 pip install -r requirements.txt
 python metacog.py            # self-test
-python docs/make_figures.py  # rebuild docs/img/*
+python make_figures.py      # regenerate the figures
 ```
 
 Expected self-test output (seed 0):
@@ -31,11 +31,17 @@ Expected self-test output (seed 0):
 ```
             ideal: d'=1.50 meta-d'=1.54 M-ratio=1.03
  noisy-confidence: d'=1.50 meta-d'=0.78 M-ratio=0.52
-raw  : brier 0.2172  reliability 0.0416  ECE 0.1888
-calib: brier 0.1760  reliability 0.0017  ECE 0.0394  AUROC2 0.8132
-murphy: miscalibration -> healthy
-fusion: relative_weights agree 0.269, p_true 0.212, verbal_conf 0.0, retrieval_support 0.518
-   prior AUROC2=0.838   fitted AUROC2=0.886
+raw  : {'brier': 0.2172, 'reliability': 0.0416, 'resolution': 0.0713, 'uncertainty': 0.2478} ECE 0.1888
+calib: {'brier': 0.176, 'reliability': 0.0017, 'resolution': 0.0734, 'uncertainty': 0.2483} ECE 0.0394 AUROC2 0.8132
+murphy: miscalibration: recalibrate (isotonic) before touching signals -> healthy
+fusion: {'fitted': True, 'n_fit': 1000, 'relative_weights': {'agree': 0.269, 'p_true': 0.212, 'verbal_conf': 0.0, 'retrieval_support': 0.518}}
+   prior AUROC2=0.838
+  fitted AUROC2=0.886
+   chat reply: tier=cheap monitor_cost= 1.5
+calendar edit: tier=mid   monitor_cost= 2.5
+ internal bet: tier=full  monitor_cost=12.5
+cheap signals disagree -> upgrade to mid
+gate: {'escalate': True, 'p': 0.014889326532043622, 'tau': 0.7916666666666667, 'reason': 'low_p'}
 ```
 
 ---
@@ -45,22 +51,22 @@ fusion: relative_weights agree 0.269, p_true 0.212, verbal_conf 0.0, retrieval_s
 ### 1. It recovers metacognitive efficiency
 `fit_meta_d()` is a maximum-likelihood meta-d′ fit (Maniscalco & Lau 2012). An ideal observer scores M-ratio ≈ 1; adding noise to confidence alone halves it while type-1 accuracy stays fixed — exactly the dissociation the metric exists to catch.
 
-![meta-d'](docs/img/meta_d.png)
+![meta-d'](meta_d.png)
 
 ### 2. It fixes overconfidence
 Raw confidence scores are rarely calibrated. `IsotonicCalibrator` (pool-adjacent-violators) maps them onto observed accuracy, cutting ECE from 0.19 to 0.04 on held-out data. `murphy_summary()` diagnoses *why* the Brier score is what it is — here, "miscalibration" before and "healthy" after.
 
-![Reliability diagram](docs/img/reliability.png)
+![Reliability diagram](reliability.png)
 
 ### 3. It learns which signals to trust
 The prior weights are an assertion (semantic entropy beats self-report, per Farquhar et al. 2024). `Fusion.fit()` runs an L2-to-prior logistic regression on logged outcomes, so small samples stay near the prior and large ones let the data speak. On synthetic logs where stated confidence is uninformative and retrieval support is strong, it drops the first to zero and doubles the second, lifting AUROC₂ from 0.84 to 0.89.
 
-![Fusion weights](docs/img/fusion_weights.png)
+![Fusion weights](fusion_weights.png)
 
 ### 4. It knows when to stop and check
 `EscalationGate` hands off to System 2 when the expected cost of acting exceeds the cost of verifying: escalate if `p < 1 − cost_verify / (verify_recall × cost_error)`. `MonitorPolicy` picks how much monitoring a claim deserves *before* paying for it (none → cheap → mid → full).
 
-![Escalation gate](docs/img/escalation_gate.png)
+![Escalation gate](escalation_gate.png)
 
 > System 2 must use **external grounding** — tools, tests, retrieval, the user. Intrinsic self-critique does not reliably fix errors (Huang et al., ICLR 2024).
 

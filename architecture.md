@@ -1,6 +1,6 @@
 # Agent loop blueprint (v1, 2026-10-07)
 
-![One cognitive cycle](img/architecture.png)
+![One cognitive cycle](architecture.png)
 
 ## Design stance
 Indicator-based and functional (Butlin et al. 2023): build and measure GWT, HOT, AST, PP and agency indicators. The goal is behaviour you can measure, not a claim of experience.

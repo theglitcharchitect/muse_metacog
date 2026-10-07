@@ -1,5 +1,5 @@
-"""Regenerate every figure in docs/img from metacog.py's own self-test data.
-Run from the repo root:  python docs/make_figures.py
+"""Regenerate every figure in the repo root from metacog.py's own self-test data.
+Run from the repo root:  python make_figures.py
 """
 import os, sys
 import numpy as np
@@ -8,11 +8,11 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from metacog import (fit_meta_d, IsotonicCalibrator, Fusion, Signals, EscalationGate,
                      MonitorPolicy, SIGNAL_NAMES, PRIOR_W, auroc2, ece)
 
-OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "img")
+OUT = os.path.dirname(os.path.abspath(__file__))
 os.makedirs(OUT, exist_ok=True)
 INK, MUTED, A, B, C, D = "#1f2430", "#6b7280", "#4f46e5", "#f97316", "#10b981", "#e11d48"
 plt.rcParams.update({"font.family": "DejaVu Sans", "font.size": 11, "axes.edgecolor": "#d1d5db",
